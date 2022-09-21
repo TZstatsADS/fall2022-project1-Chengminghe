@@ -2,7 +2,7 @@
 ## Fall 2022
 ## Project 1: Compare rationalism and empiricism by text mining
 
-<img src="figs/alex-block-PdDBTrkGYLo-unsplash.jpg" width="500"> <img src="figs/alex-block-PdDBTrkGYLo-unsplash.jpg" width="500">
+<img src="figs/alex-block-PdDBTrkGYLo-unsplash.jpg" width="500"> <img src="figs/wordcloud.jpeg" width="500">
 
 ### [Project Description](doc/)
 This is the first and only *individual* (as opposed to *team*) project this semester. 
