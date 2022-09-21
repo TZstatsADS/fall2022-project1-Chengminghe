@@ -1,0 +1,229 @@
+---
+title: "Project 1"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+```{r setup,echo=FALSE,include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+<center> <h1>Compare rationalism and empiricism by text mining </h1> </center>
+<center> <h2>Chengming He,ch3370</h2> </center>
+### 1.Introduction
+|       Empiricism and rationalism are the two major schools of thought in philosophy. They both try to answer the question that how do human obtain knowledge but have distinct points of views. Here, I will use the data from https://www.kaggle.com/datasets/kouroshalizadeh/history-of-philosophy, which was compiled for the Philosophy Data Project. In this project, I will try to find and understand some evident and less obvious differences between these two schools. Specifically, I will include word frequency analysis, bi-gram analysis and sentiment analysis to explore some interesting pattern in the dataset.
+
+### 2.Loading data 
+```{r,echo=FALSE,"loading packges"}
+library(tm)
+library(wordcloud)
+library(RColorBrewer)
+library(dplyr)
+library(tidytext)
+library(knitr)
+library(tidyr)
+library(scales)
+library(ggplot2)
+library(stringr)
+library(textdata)
+library(syuzhet)
+library(igraph)
+library(ggraph)
+library(widyr)
+library(topicmodels)
+library(tinytex)
+library(word2vec)
+library(ggpubr)
+```
+```{r,echo=FALSE,"loading data"}
+data = read.csv("data/philosophy_data.csv")
+author.rat <- unique(data[which(data$school == "rationalism"),]$author)
+author.emp <- unique(data[which(data$school == "empiricism"),]$author)
+l.rat <- c()
+l.emp <- c()
+for (i in 1:length(author.rat)){
+  l.rat <- c(l.rat, sum(data$author == author.rat[i]))
+}
+l.rat <- c(l.rat,sum(l.rat))
+for (j in 1:length(author.emp)){
+  l.emp <- c(l.emp, sum(data$author == author.emp[j]))
+}
+l.emp <- c(l.emp,sum(l.emp))
+names(l.rat) <- c(author.rat,"rationalism_total")
+names(l.emp) <- c(author.emp,"empiricism_total")
+print(l.emp)
+print(l.rat)
+```
+|       After loading the data, the subset of rationalism and empiricism is chosen for further analysis. The original unit of analysis is a sentence which corresponds to a single row in the csv file. The above summarizes the number of sentences of each author in two schools. The total numbers of each school are roughly comparable.
+ 
+### 3. Word Frequency analysis
+#### 3.1 Word Cloud
+|       The first analysis is the visualization of word-cloud in the two corpora, namely rationalism and empiricism. The `lemmatized_str` is used in the construction of a TfIdf document-term matrix. Common stop words and some customized words are removed for the sake of analysis. The blue figure is rationalism and the red one is empiricism. For someone like me that didn't know much about rationalism before, it might seem very surprising that the word "god" is the most standout in it, making people whether rationalism has ties to religions or theology. On the other hand, the significant words in empiricism are more "human-oriented", that highlight the role of humans, such as "sense", "mind", "perceive", etc.
+
+```{r,echo=FALSE,"create dtm"}
+sub.data = data[which(data$school=='rationalism' | data$school=='empiricism'),]
+sub.corpus = VCorpus(VectorSource(sub.data$lemmatized_str))
+sub.corpus = tm_map(sub.corpus, removePunctuation)
+sub.corpus = tm_map(sub.corpus, stripWhitespace)
+sub.corpus = tm_map(sub.corpus, content_transformer(tolower))
+sub.corpus = tm_map(sub.corpus, removeWords, c("the", "and","pron","object","regard","idea",stop_words$word))
+sub.dtm <- DocumentTermMatrix(sub.corpus,control = 
+          list(weighting = function(x) weightTfIdf(x,normalize=FALSE),stopwords = TRUE))
+```
+```{r,echo=FALSE,fig.height = 4,fig.width = 10, fig.align = "center","worldcloud for rationalism and empiricism"}
+par(mfrow=c(1,2),mar = c(0, 0, 3, 0))
+rat.tdm = sub.dtm[which(sub.data$school=='rationalism'),]
+rat.tdm.tidy=tidy(rat.tdm)
+rat.tdm.all=summarise(group_by(rat.tdm.tidy, term), sum(count))
+wordcloud(rat.tdm.all$term, rat.tdm.all$`sum(count)`,
+          scale=c(3,0.3),
+          max.words=100,
+          min.freq=1,
+          random.order=FALSE,
+          rot.per=0.3,
+          random.color=FALSE,
+          colors=brewer.pal(9,"Blues"),main="Rationalism") 
+
+emp.tdm = sub.dtm[which(sub.data$school=='empiricism'),]
+emp.tdm.tidy=tidy(emp.tdm)
+emp.tdm.all=summarise(group_by(emp.tdm.tidy, term), sum(count))
+wordcloud(emp.tdm.all$term, emp.tdm.all$`sum(count)`,
+          scale=c(2,0.2),
+          max.words=100,
+          min.freq=1,
+          random.order=FALSE,
+          rot.per=0.3,
+          random.color=FALSE,
+          colors=brewer.pal(9,"Reds"),main="Empiricism") 
+```
+
+#### 3.2 Word frequency comparison
+|       Next, to compare the word frequency in each corpus, the correlation is plotted, where the x-axis is the word frequency in rationalism and  the y-axis is the word frequency in empiricism and. The diagonal are the words that are common in both corpus while the off-diagonal are those appear more frequently on one corpus. From the figure, we can see that the diagonal region are crowded with many commonly used word. We can see from the lower right region that some words are more frequent in rationalism, such as "sin", "soul","god". Those words have regigous meanings, which is consistent with the findings from 3.1. In the opposite region, there are some words that are more "practical", such as "commonwealth" and "government".
+
+```{r,echo=FALSE,fig.height = 5,fig.width = 5, fig.align = "center","word frequency"}
+rat.tdm.all$freq  = rat.tdm.all$`sum(count)`/sum(rat.tdm.all$`sum(count)`)
+emp.tdm.all$freq = emp.tdm.all$`sum(count)`/sum(emp.tdm.all$`sum(count)`)
+tdm.binded = bind_rows(rat.tdm.all %>% mutate(school = 'rationalism'),emp.tdm.all %>% mutate(school='empiricism'))
+tdm.binded = tdm.binded %>% select(school,term,freq) %>% pivot_wider(names_from=school,values_from=freq) %>%
+  arrange(rationalism,empiricism)
+p = ggplot(tdm.binded, aes(rationalism, empiricism)) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.25, height = 0.25) +
+  geom_text(aes(label = term), check_overlap = TRUE, vjust = 1.2,size=2) +
+  scale_x_log10(labels = percent_format()) +
+  scale_y_log10(labels = percent_format()) +
+  geom_abline(color = "red")
+# p = p + theme(text = element_text(size = 2))
+p
+```
+
+#### 3.3 Word pair frequency comparison
+|       Finally, the word pairs frequencies are computed from the Term-Document-Matrix. The frequency of a given word pair is define as the number of occurrences of these two word within the same same sentence. The blue figure are the word pairs in rationalism, it clearly shows that there are 3 clusters interconnected with each other, namely "body", "mind", and "god". The "body" cluster represents humans in the material world while the "mind" cluster represents a more spiritual world derived from human beings' "imagination" and "perceive". Both clusters are connected to another one representing the divine that hold the eternal truth. In the red figure showing word pairs in empiricism, on the other hand, there is only one cluster that emphasizes the importance of "mind". In contrast to rationalism, there's no the divine that holds the absolute truth.
+
+```{r,echo=FALSE,fig.height = 4,fig.width = 10, fig.align = "center","word pairs in rationalism and empiricism"}
+rat.tdm.tidy.pairs <- rat.tdm.tidy %>% 
+    pairwise_count(term, document, sort = TRUE, upper = FALSE)
+set.seed(0)
+p1 <- rat.tdm.tidy.pairs %>%
+  filter(n >= 100) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n/2, edge_width = n/2), edge_colour = "skyblue") +
+  geom_node_point(size = 2.5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void() +
+  labs(title="Word pairs in Rationalism") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+emp.tdm.tidy.pairs <- emp.tdm.tidy %>% 
+    pairwise_count(term, document, sort = TRUE, upper = FALSE)
+set.seed(0)
+p2 <- emp.tdm.tidy.pairs %>%
+  filter(n >= 100) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n/2, edge_width = n/2), edge_colour = "darkred") +
+  geom_node_point(size = 2.5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void() +
+  labs(title="Word pairs in Empiricism") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggarrange(p1,p2,
+          ncol = 2, nrow = 1)
+```
+
+### 4. Bi-gram analysis
+|       In the last section, we find some interesting patterns in single word frequencies as well as word pairs. Here, I will analyze the most bigram that appears in each corpus. It's very interesting that "animal spirit" is the most frequent bigram in rationalism. The term means the intrinsic irrationality of human being as an animal in that human decisions are sometimes heavily influenced by their surroundings and emotions. It also shows that rationalists acknowledge that human can be irrational at times, which seems very contradictory to many people unfamiliar with philosophy. The other frequent bigrams include 1) "human mind" and "human mind" that represent the role of human in rationale,  2) "jesus christ" and "saint augustine" that represent the absolute truth, 3) "straight line" and "centrifugal force" that represent some early theories in math and physical sciences, which indicates that many mathematicians and physical scientists at that time believe in rationalism. On the other hand, the most frequent bigrams in empiricism seems emphasize the importance of "real existence" and "human nature" instead of some imaginary absolute truth.
+
+```{r,echo=FALSE,fig.height = 4,fig.width = 10, fig.align = "center","rationalism 2-gram"}
+p1.bigram <- sub.data %>% 
+  filter(school=="rationalism") %>%
+  unnest_tokens(word, lemmatized_str, token = "ngrams", n = 2) %>% 
+  separate(word, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% c("the", "and","pron","object","regard","idea",stop_words$word)) %>%
+  filter(!word2 %in% c("the", "and","pron","object","regard","idea",stop_words$word)) %>% 
+  unite(word,word1, word2, sep = " ") %>% 
+  count(word, sort = TRUE) %>% 
+  slice(1:10) %>% 
+  ggplot() + geom_bar(aes(reorder(word,n), n), stat = "identity", fill = "#0072B2") +
+  theme_minimal() +
+  coord_flip() +
+  labs(title = "Top Bigrams in rationalism") +
+  ylab("count") +
+  xlab("Bigram") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+p2.bigram <- sub.data %>% 
+  filter(school=="empiricism") %>%
+  unnest_tokens(word, lemmatized_str, token = "ngrams", n = 2) %>% 
+  separate(word, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% c("the", "and","pron","object","regard",stop_words$word)) %>%
+  filter(!word2 %in% c("the", "and","pron","object","regard","idea",stop_words$word)) %>% 
+  unite(word,word1, word2, sep = " ") %>% 
+  count(word, sort = T) %>%
+  slice(1:10) %>%
+  ggplot() + geom_bar(aes(reorder(word,n), n), stat = "identity", fill = "#D55E00") +
+  theme_minimal() +
+  coord_flip() +
+  labs(title = "Top Bigrams in empiricism") +
+  ylab("count") +
+  xlab("Bigram") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggarrange(p1.bigram,p2.bigram,
+          ncol = 2, nrow = 1)
+```
+
+
+### 5. Sentiment analysis
+|       In this section, I analyzed the sentiments of these two corpora. First, the distribution of sentiments of each sentence in the two corpora are computed using `syuzhet`. The overall sentiments in empiricism and rationalism seem slightly positive while both peak at neutral. 
+
+```{r,echo=FALSE,fig.height = 4,fig.width = 5, fig.align = "center","overall sentiment distribution"}
+sub.data$senti <- get_sentiment(sub.data$lemmatized_str,method='syuzhet')
+ggplot(sub.data, aes(senti, fill = school)) + geom_density(alpha = 0.2)+
+  xlab('Sentence Sentiment') + ylab('Density') + labs(title="Sentiments distribution") +   theme(plot.title = element_text(hjust = 0.5))
+```
+
+|       Next, I explored the sentiments of sentences containing some specific words that were discovered in the previous section. In the distribution of sentiments of sentences including "god" and "jesus", we can clearly see that rationalists are more positive about it and there are a subgroup of the sentences in rationalism that are at the maximum in terms of "positivity". On the other hand, for sentences containing "mind" or "human", the sentiment distribution between the two schools is very similar.
+
+```{r,echo=FALSE,fig.height = 4, fig.width = 10, fig.align = "center", "word sentiments god jesus"}
+filtered.1 <- sub.data %>% filter(str_detect(sub.data$lemmatized_str,c("god")) |
+                                str_detect(sub.data$lemmatized_str,c("jesus")))
+filtered.1$senti <- get_sentiment(filtered.1$lemmatized_str,method='syuzhet')
+p1.filtered <- ggplot(filtered.1, aes(senti, fill = school)) + geom_density(alpha = 0.2)+
+  xlab('Sentence Sentiment') + ylab('Density') + labs(title="\"god\" and \"jesus\" " ) +   theme(plot.title = element_text(hjust = 0.5))
+
+filtered.2 <- sub.data %>% filter(str_detect(sub.data$lemmatized_str,c("mind")) |
+                                str_detect(sub.data$lemmatized_str,c("human")))
+filtered.2$senti <- get_sentiment(filtered.2$lemmatized_str,method='syuzhet')
+p2.filtered <- ggplot(filtered.2, aes(senti, fill = school)) + geom_density(alpha = 0.2)+
+  xlab('Sentence Sentiment') + ylab('Density') + labs(title="\"mind\" and \"human\" " ) +   theme(plot.title = element_text(hjust = 0.5))
+ggarrange(p1.filtered,p2.filtered,
+          ncol = 2, nrow = 1)
+```
+
+### 6. Conlusion
+|       In the project, I analyzed two corpora from rationalism and empiricism and explored some interesting patterns by text mining. For someone who hasn't read the books, it would be surprising that "God" and "Jesus Christ" have a huge impact on shaping the core thoughts in rationalism. In spite of the fact that rationalists believe in absolute truths, they also acknowledge that people are sometimes irrational, described as "animal spirits". For empiricism, they care more about "human nature" and believe that humans will gain knowledge through "perception". Also, we find some early days mathematicians and physical scientists believe in rationalism. Through this project, we can find that texting mining can be a useful tool for analyzing and understanding the core thoughts of large amounts of text data in philosophy.
