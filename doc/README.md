@@ -1,5 +1,5 @@
-# ADS Project 1:  R Notebook on the history of philosophy
+# ADS Project 1:  Compare rationalism and empiricism by text mining
 
 ### Doc folder
 
-The doc directory contains the report or presentation files. It can have subfolders.  
+The doc directory contains the the Rmd file and its corresponding html, namely `project1.Rmd` and `project1.html`.  
