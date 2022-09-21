@@ -1,6 +1,7 @@
 # Applied Data Science @ Columbia
 ## Fall 2022
-## Project 1: Compare rationalism and empiricism by text mining
+## Project 1:  R Notebook on the history of philosophy
+###             ---------Compare rationalism and empiricism by text mining
 
 <img src="figs/alex-block-PdDBTrkGYLo-unsplash.jpg" width="500"> <img src="figs/wordcloud.jpeg" width="500">
 
