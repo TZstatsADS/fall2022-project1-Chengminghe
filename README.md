@@ -1,8 +1,8 @@
 # Applied Data Science @ Columbia
 ## Fall 2022
-## Project 1: A "data story" on the history of philosophy
+## Project 1: Compare rationalism and empiricism by text mining
 
-<img src="figs/100126-the-glass.jpeg" width="500">
+<img src="figs/alex-block-PdDBTrkGYLo-unsplash.jpg" width="500">
 
 ### [Project Description](doc/)
 This is the first and only *individual* (as opposed to *team*) project this semester. 
