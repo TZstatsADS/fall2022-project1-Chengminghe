@@ -4,17 +4,9 @@
 
 <img src="figs/alex-block-PdDBTrkGYLo-unsplash.jpg" width="500"> <img src="figs/wordcloud.jpeg" width="500">
 
-### [Project Description](doc/)
-This is the first and only *individual* (as opposed to *team*) project this semester. 
-
-Term: Fall 2022
-
-+ Projec title: Lorem ipsum dolor sit amet
-+ This project is conducted by [your name]
-
-+ Project summary: [a short summary] Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
+### [Introduction](doc/)
+Empiricism and rationalism are the two major schools of thought in philosophy. They both try to answer the question that how do human obtain knowledge but have distinct points of views. Here, I will use the data from https://www.kaggle.com/datasets/kouroshalizadeh/history-of-philosophy, which was compiled for the Philosophy Data Project. In this project, I will try to find and understand some evident and less obvious differences between these two schools. Specifically, I will include word frequency analysis, bi-gram analysis and sentiment analysis to explore some interesting pattern in the dataset.
+This folder is orgarnized as follows.
 
 ```
 proj/
@@ -25,4 +17,3 @@ proj/
 └── output/
 ```
 
-Please see each subfolder for a README file.
